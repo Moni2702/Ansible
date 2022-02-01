@@ -1,6 +1,6 @@
 # install mysql db on db-server
 - name: Configure Database server
-  hosts: tag_Name_web_server # from dynamic inventory file
+  hosts: tag_Name_database_server # from dynamic inventory file
   vars_files:
   - 6-vars.yaml
   roles:
