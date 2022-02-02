@@ -1,4 +1,4 @@
-# install mysql db on db-server
+# Install mysql db on db-server
 - name: Configure Database server
   hosts: tag_Name_database_server # from dynamic inventory file
   vars_files:
@@ -10,10 +10,10 @@
   - name: validate mysql service started
     shell: ps aux | grep mysql
     register: app_status
-  - debug: msg="{{ app_status.stdout_lines }}"  
+  - debug: msg="{{ app_status.stdout_lines }}"
 
 # Deploy java application
-- name: Configure web server
+- name: Install Java
   hosts: tag_Name_web_server # from dynamic inventory file
   become: yes
   tasks:
@@ -27,7 +27,7 @@
   tasks:
   - name: Copy jar file to server
     copy:
-      src: ~/Demo-projects/Bootcamp/Exercises/bootcamp-java-mysql-project/build/libs/bootcamp-java-mysql-project-1.0-SNAPSHOT.jar
+      src: /home/ubuntu/bootcamp-java-mysql-project-1.0-SNAPSHOT.jar
       dest: java-app.jar
 
   - name: Start java application with needed env vars
@@ -35,7 +35,7 @@
     environment:
       DB_USER: my-user
       DB_PWD: my-pass
-      DB_SERVER: localhost # TODO set this to private IP of db server
+      DB_SERVER: "{{ hostvars[groups['tag_Name_database_server'][0]]['ansible_default_ipv4']['address'] }}" # TODO set this to private IP of db server
       DB_NAME: my-app-db
     async: 1000
     poll: 0

@@ -5,10 +5,10 @@
   tasks:
   - name: Start an instance without a public IP address
     amazon.aws.ec2_instance:
-      name: "database-server"
+      name: database-server
       key_name: "{{ key_name }}"
       region: "{{ aws_region }}"
-      vpc_subnet_id: "{{ subnet_id }}"
+      vpc_subnet_id: "{{ subnet_id_db }}"
       instance_type: t2.micro
       security_group: default
       image_id: "{{ ami_id }}"
@@ -18,10 +18,10 @@
         server: database
   - name: Start an instance with a public IP address
     amazon.aws.ec2_instance:
-      name: "web-server"
+      name: web-server
       key_name: "{{ key_name }}"
       region: "{{ aws_region }}"
-      vpc_subnet_id: "{{ subnet_id }}"
+      vpc_subnet_id: "{{ subnet_id_web }}"
       instance_type: t2.micro
       security_group: default
       image_id: "{{ ami_id }}"

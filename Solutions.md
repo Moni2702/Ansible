@@ -63,11 +63,14 @@ ansible-playbook 2-push-to-nexus.yaml --extra-vars "nexus_url=http://nexus-ip:ne
 - 3-provision-jenkins-ec2.yaml 
 - 3-install-jenkins-ec2.yaml 
 
-# Execute
+# Execute to provision jenkins server 
 ansible-playbook 3-provision-jenkins-ec2.yaml --extra-vars "ssh_key_path=/path/to/ssh-key/file aws_region=your-aws-region key_name=your-key-pair-name subnet_id=your-subnet-id ami_id=image-id-for-amazon-linux ssh_user=ec2-user" 
 
 # NOTE: Optionally you can try getting some of these parameter values programatically using Ansible itself. You can also put them into a variables file instead of passing on cli. Or parameterise even more values inside the playbook, like version numbers of different tools etc. As you see you are very flexible in what you can do with Ansible.
 
+# Wait until the server is fully initialised
+
+# Execute to configure jenkins server 
 ansible-playbook -i hosts-jenkins-server 3-install-jenkins-ec2.yaml --extra-vars "aws_region=your-aws-region"
 ```
 
@@ -92,9 +95,12 @@ ansible-playbook 3-provision-jenkins-ec2.yaml --extra-vars "ssh_key_path=/path/t
 
 ansible-playbook -i hosts-jenkins-server 4-install-jenkins-ubuntu.yaml --extra-vars "host_os=ubuntu aws_region=your-aws-region"
 
-# To Create and configure Jenkins on --amazon-linux-- EC2 instance
+# Execute to Create Jenkins server on --amazon-linux-- EC2 instance
 ansible-playbook 3-provision-jenkins-ec2.yaml --extra-vars "ssh_key_path=/path/to/ssh-key/file aws_region=your-aws-region key_name=your-key-pair-name subnet_id=your-subnet-id ami_id=image-id-for-ubuntu ssh_user=ubuntu"
 
+# Wait until the server is fully initialised
+
+# Execute to configure Jenkins
 ansible-playbook -i hosts-jenkins-server 4-install-jenkins-ubuntu.yaml --extra-vars "host_os=amazon-linux aws_region=your-aws-region"
 
 # NOTES:
@@ -120,6 +126,8 @@ ansible-playbook -i hosts-jenkins-server 4-install-jenkins-ubuntu.yaml --extra-v
 # Execute to provision the ubuntu Jenkins server
 ansible-playbook 3-provision-jenkins-ec2.yaml --extra-vars "ssh_key_path=/path/to/ssh-key/file aws_region=your-aws-region key_name=your-key-pair-name subnet_id=your-subnet-id ami_id=image-id-for-ubuntu ssh_user=ubuntu"
 
+# Wait until the server is fully initialised
+
 # Execute to configure server to run jenkins as a docker container
 ansible-playbook -i hosts-jenkins-server 5-install-jenkins-docker.yaml --extra-vars "aws_region=your-aws-region"
 
@@ -135,55 +143,57 @@ ansible-playbook -i hosts-jenkins-server 5-install-jenkins-docker.yaml --extra-v
 
 **steps:**
 ```sh
-# From local computer:
-## Create an Ansible control (ubuntu) server in your AWS VPC 
-xxx
+# Implementation in files: 
+- xxxxx 
+- xxxxx
 
-# On Ansible control server:
-## Install all the needed tools to execute the playbooks from there: 
-### Install Ansible
-sudo apt-get update
-sudo apt-get install ansible
+# Create an aws key-pair "ansible-managed-server-key" for web server and database server, download locally and set permission to 400 
+chmod 400 ~/Downloads/ansible-managed-server-key.pem
 
-### Install Ansible role for mysql configuration
-ansible-galaxy install geerlingguy.mysql
+# Create an aws key-pair "ansible-control-server-key" for ansible control server, download locally and set permission to 400
+chmod 400 ~/Downloads/ansible-control-server-key.pem
 
-### Install pip3, boto3 and botocore
-sudo apt install python3-pip
-pip3 install boto3 botocore
-
-## Configure aws credentials
-### Create .aws folder in ubuntu user's home dir
-mkdir .aws
-
-### Copy your aws creds
-vim .aws/credentials
-
-## Configure ssh key for accessing database and web servers. You can copy the keys from your local computer to ansible control server
-scp -i private-key-to-connect-to-ansible-control-server-from-localhost private-key-to-connect-to-database-web-servers-from-ansible-control-server ubuntu@ansible-server-ip:/home/ubuntu
-
-## Set the correct aws region inside 6-inventory_aws_ec2.yaml file
+# Set the correct aws region, in which you want to create all your servers, inside 6-inventory_aws_ec2.yaml file
 regions: 
-- your-aws-region
-
-## Copy all your playbook files and configuration files to ansible server
-scp -i private-key-to-connect-to-ansible-control-server-from-localhost dir-with-ansible-files ubuntu@ansible-server-ip:/home/ubuntu
-
-## Provision both (ubuntu) servers inside the same VPC with ansible script 6-provision-servers.yaml
-ansible-playbook 6-provision-servers.yaml --extra-vars "ssh_key_path=~/Downloads/boto3-server-key.pem aws_region=eu-west-3 key_name=boto3-server-key subnet_id=subnet-d74639be ami_id=ami-031eb8d942193d84f ssh_user=ubuntu"
+- eu-west-3
 
 # Comment in lines 6,7,8 inside ansible.cfg file, to enable the aws_ec2 plugin and configure remote user
 enable_plugins = amazon.aws.aws_ec2
 remote_user = ubuntu
-private_key_file = private-key-to-connect-to-database-web-servers-from-ansible-control-server
+private_key_file = /home/ubuntu/ansible-managed-server-key.pem
 
-# You can test the inventory file results with command and see the dynamic group names for referencing database and web servers:
-ansible-inventory -i 6-inventory_aws_ec2.yaml --graph
+# IMPORTANT! Since we are creating database server without public ip address, by default it won't have internet access. But we need outgoing internet access on the database server in order to be able to download and install packages and tools, including the mysql service itself, so we need to configure that with the following steps:
 
-# Configure both servers with ansible script 6-configure-servers.yaml using the dynamic inventory file
-ansible-playbook -i 6-inventory_aws_ec2.yaml 6-configure-servers.yaml
+1: Create a NAT gateway called "my-nat" in one of the PUBLIC subnets, meaning subnets with internet gateway configured in the associated route table. Allocate elastic IP address to the NAT when creating it
+2: Create a new route table called "my-db-rt" and add a route: destination: 0.0.0.0/0, target: "my-nat" 
+3: In subnet associations of the route table, select a subnet in which you will create your database server. So this will be our "private" subnet. 
+4: Copy the 2 subnet ids, 1 public subnet id in which we created the NAT gateway and 1 private subnet id which we assosiated with the "my-db-rt" route table. 
+Because we will create the "ansible-server" and "web-server" in the public subnet and "database-server" in the private subnet by providing them as variables values to our playbook.  
 
-# Make sure to open port 8080 for the web server and access the application via public-ip:8080 from browser to make sure the application was successfuly deployed :)
+
+# NOTE: make sure to set the correct variable values for aws_region etc for your playbook execution:
+
+# Execute playbook to provision ansible control server itself
+ansible-playbook 6-provision-ansible-server.yaml --extra-vars "aws_region=eu-west-3 key_name=ansible-control-server-key subnet_id=public-subnet-id ami_id=ami-0c6ebbd55ab05f070"
+
+# Wait until the server is fully initialised
+
+# Execute playbook to configure ansible control server with all needed tools and files
+ansible-playbook -i 6-inventory_aws_ec2.yaml 6-configure-ansible-server.yaml
+
+
+# SSH into ansible control server to execute the playbooks for configuring database and web servers
+ssh -i ~/Downloads/ansible-control-server-key.pem ubuntu@ansible-server-public-ip
+
+# Execute to provision both (ubuntu) servers inside the same VPC
+ansible-playbook 6-provision-app-servers.yaml --extra-vars "aws_region=eu-west-3 key_name=ansible-managed-server-key subnet_id_web=public-subnet-id subnet_id_db=private-subnet-id ami_id=ami-0c6ebbd55ab05f070"
+
+# Wait until the servers are fully initialised
+
+# Execute to configure both servers
+ansible-playbook -i 6-inventory_aws_ec2.yaml 6-configure-app-servers.yaml
+
+# Make sure to open port 8080 for the web server and access the application via web-server-public-ip-or-dns-name:8080 from browser to make sure the application was successfuly deployed :)
 
 ```
 
