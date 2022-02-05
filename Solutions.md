@@ -144,8 +144,13 @@ ansible-playbook -i hosts-jenkins-server 5-install-jenkins-docker.yaml --extra-v
 **steps:**
 ```sh
 # Implementation in files: 
-- xxxxx 
-- xxxxx
+- 6-provision-ansible-server.yaml
+- 6-configure-ansible-server.yaml
+- 6-inventory_aws_ec2.yaml
+- 6-provision-app-servers.yaml
+- 6-configure-app-servers.yaml
+- 6-vars.yaml
+
 
 # Create an aws key-pair "ansible-managed-server-key" for web server and database server, download locally and set permission to 400 
 chmod 400 ~/Downloads/ansible-managed-server-key.pem
@@ -197,6 +202,66 @@ ansible-playbook -i 6-inventory_aws_ec2.yaml 6-configure-app-servers.yaml
 
 ```
 
+</details>
+
+******
+
+<details>
+<summary>Exercise 7: Deploy Java MySQL Application in Kubernetes </summary>
+ <br />
+
+**steps:**
+```sh
+# Implementation in files: 
+- 7-deploy-on-k8s.yaml
+- kubernetes-manifests/exercise-7/*.yaml
+
+# To dockerize the java-mysql application, use the Dockerfile from solutions branch: 
+https://gitlab.com/devops-bootcamp3/bootcamp-java-mysql/-/blob/feature/solutions/Dockerfile
+
+# Build and push the image with name: "your-docker-hub-id/demo-app:java-mysql-app" (that's how we are referencing it in kubernetes-manifests/exercise-7/java-app.yaml) to your private dockerhub repo. 
+
+# Create a k8s cluster any way you want: Minikube, LKE, EKS and get the kubeconfig file
+
+# Set value of the ingress host in file kubernetes-manifests/exercise-7/java-app-ingress.yaml, which you will use to access the java app from browser
+
+# Set environment variable for accessing K8s cluster with kubectl and Ansible
+export KUBECONFIG=/path/to/kube/config/file
+
+# Execute playbook to deploy K8s manifests (make sure you have Docker running locally when executing the playbook)
+ansible-playbook 7-deploy-on-k8s.yaml --extra-vars "docker_user=your-dockerhub-user docker_pass=your-dockerhub-password"
+
+# NOTE: if you get an error on creating ingress component related to "nginx-controller-admission" webhook, than manually delete the ValidationWebhook and try again. To delete the ValidationWebhook:
+kubectl get ValidatingWebhookConfiguration # gives you the name
+kubectl delete ValidatingWebhookConfiguration {name}
+
+```
+</details>
+
+******
+
+<details>
+<summary>Exercise 8: Deploy MySQL Chart in Kubernetes </summary>
+ <br />
+
+**steps:**
+```sh
+# Implementation in files: 
+- 8-deploy-on-k8s.yaml
+- kubernetes-manifests/exercise-8/*.yaml
+
+# Set value of the ingress host in file kubernetes-manifests/exercise-7/java-app-ingress.yaml, which you will use to access the java app from browser
+
+# Set environment variable for accessing K8s cluster with kubectl and Ansible
+export KUBECONFIG=/path/to/kube/config/file
+
+# Remove the currently running mysql deployment, that we created in exercise 7
+kubectl delete deployment mysql-deployment
+
+# Execute playbook to deploy the mysql chart in your already existing k8s cluster
+ansible-playbook 8-deploy-on-k8s.yaml --extra-vars "docker_user=your-dockerhub-user docker_pass=your-dockerhub-password"
+
+```
 </details>
 
 ******
