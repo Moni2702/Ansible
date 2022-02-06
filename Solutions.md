@@ -17,6 +17,7 @@ Fix: In file - src/test/java/AppTest.java, line - 22, remove quotes from true to
 - Install the "acl" package that includes "setfacl" command on the ubuntu machine, so that Ansible can set temporary file permissions correctly, when connecting to the server as an unprivileged user (ubuntu) and becoming another unprivileged user (my-user)
 sudo apt-get update -y
 sudo apt-get install -y acl
+
 Link: https://docs.ansible.com/ansible/latest/user_guide/become.html#risks-of-becoming-an-unprivileged-user
 ```
 
@@ -54,7 +55,7 @@ ansible-playbook 2-push-to-nexus.yaml --extra-vars "nexus_url=http://nexus-ip:ne
 ******
 
 <details>
-<summary>Exercise 3: Install Jenkins on EC2 </summary>
+<summary>Exercise 3: Install Jenkins on amazon-linux EC2 instance </summary>
  <br />
 
 **steps**
@@ -79,7 +80,7 @@ ansible-playbook -i hosts-jenkins-server 3-install-jenkins-ec2.yaml --extra-vars
 ******
 
 <details>
-<summary>Exercise 4: Install Jenkins on Ubuntu </summary>
+<summary>Exercise 4: Install Jenkins on Ubuntu EC2 instance </summary>
  <br />
 
 **steps**
@@ -199,7 +200,6 @@ ansible-playbook 6-provision-app-servers.yaml --extra-vars "aws_region=eu-west-3
 ansible-playbook -i 6-inventory_aws_ec2.yaml 6-configure-app-servers.yaml
 
 # Make sure to open port 8080 for the web server and access the application via web-server-public-ip-or-dns-name:8080 from browser to make sure the application was successfuly deployed :)
-
 ```
 
 </details>
@@ -263,5 +263,3 @@ ansible-playbook 8-deploy-on-k8s.yaml --extra-vars "docker_user=your-dockerhub-u
 
 ```
 </details>
-
-******
